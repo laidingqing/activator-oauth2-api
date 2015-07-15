@@ -3,8 +3,11 @@ package core
 import akka.actor.ActorSystem
 import components.{FacebookAuthenticator, GoogleAuthenticator, LiveAuthenticator}
 import conf.Settings
+import domain.repositories._
 import routing._
 import spray.routing.RouteConcatenation
+
+import scala.concurrent.ExecutionContext
 
 trait Core {
   implicit def actorSystem: ActorSystem
@@ -22,7 +25,6 @@ trait SettingsCore {
   val settings = Settings()
 }
 
-
 trait ComponentsCore {
   self: Core with SettingsCore =>
 
@@ -32,15 +34,24 @@ trait ComponentsCore {
 
 }
 
+trait RepositoriesCore {
+
+  implicit val repositoryExecutionContext = ExecutionContext.global
+
+  val userRepository: UserRepository = new UserRepositoryImpl()
+  val todoItemRepository: TodoItemRepository = new TodoItemRepositoryImpl()
+}
+
 trait ApiCore extends RouteConcatenation {
-  self: Core with ComponentsCore with SettingsCore =>
+  self: Core with ComponentsCore with SettingsCore with RepositoriesCore =>
 
   private implicit val _ = actorSystem.dispatcher
 
   val servicesRoutes =
     FacebookAuthService(facebookAuthenticator).route ~
     GoogleAuthService(googleAuthenticator).route ~
-    LiveAuthService(liveAuthenticator).route
+    LiveAuthService(liveAuthenticator).route ~
+    UserServices(userRepository).route
 
   val routedHttpServiceActor = actorSystem.actorOf(RoutedHttpService.props(servicesRoutes), "oauth2-api-root-service")
 

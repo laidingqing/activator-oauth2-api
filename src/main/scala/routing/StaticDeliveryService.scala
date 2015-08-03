@@ -3,10 +3,10 @@ package routing
 import akka.actor.ActorSystem
 import spray.routing.Directives
 
-class StaticDeliveryServiceImpl(val name: String)(implicit val actorSystem: ActorSystem) extends StaticDeliveryService
+class StaticDeliveryServiceImpl()(implicit val actorSystem: ActorSystem) extends StaticDeliveryService
 
 object StaticDeliveryService {
-  def apply(name: String)(implicit actorSystem: ActorSystem): StaticDeliveryService = new StaticDeliveryServiceImpl(name)(actorSystem)
+  def apply()(implicit actorSystem: ActorSystem): StaticDeliveryService = new StaticDeliveryServiceImpl()(actorSystem)
 }
 
 trait StaticDeliveryService extends Directives {

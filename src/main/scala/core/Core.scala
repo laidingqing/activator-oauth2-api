@@ -51,7 +51,9 @@ trait ApiCore extends RouteConcatenation {
     FacebookAuthService(facebookAuthenticator).route ~
     GoogleAuthService(googleAuthenticator).route ~
     LiveAuthService(liveAuthenticator).route ~
-    UserServices(userRepository).route
+    UserServices(userRepository).route ~
+    StaticDeliveryService("test").route
+
 
   val routedHttpServiceActor = actorSystem.actorOf(RoutedHttpService.props(servicesRoutes), "oauth2-api-root-service")
 

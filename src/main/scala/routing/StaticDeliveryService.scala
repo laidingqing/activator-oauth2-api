@@ -18,7 +18,7 @@ trait StaticDeliveryService extends Directives {
         pathEndOrSingleSlash {
           getFromResource("public/index.html")
         } ~
-          getFromResourceDirectory("public")
+        getFromResourceDirectory("public")
       }
     }
 

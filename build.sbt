@@ -4,6 +4,8 @@ version := "1.0"
 
 scalaVersion := "2.11.6"
 
+seq(Twirl.settings: _*)
+
 resolvers ++= Seq(
   "Spray Repo" at "http://repo.spray.io"
 )

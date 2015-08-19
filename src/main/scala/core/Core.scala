@@ -1,13 +1,11 @@
 package core
 
 import akka.actor.ActorSystem
-import components.{FacebookAuthenticator, GoogleAuthenticator, LiveAuthenticator}
+import components._
 import conf.Settings
 import domain.repositories._
 import routing._
 import spray.routing.RouteConcatenation
-
-import scala.concurrent.ExecutionContext
 
 trait Core {
   implicit def actorSystem: ActorSystem
@@ -25,25 +23,37 @@ trait SettingsCore {
   val settings = Settings()
 }
 
-trait ComponentsCore {
-  self: Core with SettingsCore =>
+trait OAuthCore {
+    self: Core with SettingsCore =>
 
-  val facebookAuthenticator = FacebookAuthenticator(settings.facebook.clientId, settings.facebook.clientSecret)
-  val googleAuthenticator = GoogleAuthenticator(settings.google.clientId, settings.google.clientSecret)
-  val liveAuthenticator = LiveAuthenticator(settings.live.clientId, settings.live.clientSecret)
+  val facebookOAuthClient = FacebookOAuthClient(settings.facebook.clientId, settings.facebook.clientSecret)
+  val googleOAuthClient = GoogleOAuthClient(settings.google.clientId, settings.google.clientSecret)
+  val liveOAuthClient = LiveOAuthClient(settings.live.clientId, settings.live.clientSecret)
 
 }
 
-trait RepositoriesCore {
+trait AuthorizationCore {
+    self: OAuthCore with PersistenceCore with SettingsCore =>
 
-  implicit val repositoryExecutionContext = ExecutionContext.global
+  val facebookAuthenticator = FacebookAuthenticator(facebookOAuthClient, userRepository, oauthTokenRepository)
+  val googleAuthenticator = GoogleAuthenticator(googleOAuthClient, userRepository, oauthTokenRepository)
+  val liveAuthenticator = LiveAuthenticator(liveOAuthClient, userRepository, oauthTokenRepository)
 
-  val userRepository: UserRepository = new UserRepositoryImpl()
-  val todoItemRepository: TodoItemRepository = new TodoItemRepositoryImpl()
+}
+
+trait PersistenceCore {
+  self: Core =>
+
+  //implicit val repositoryExecutionContext = ExecutionContext.global
+  private implicit val _ = actorSystem.dispatcher
+
+  val userRepository = UserRepository()
+  val oauthTokenRepository = OAuthTokenRepository()
+  val todoItemRepository = TodoItemRepository()
 }
 
 trait ApiCore extends RouteConcatenation {
-  self: Core with ComponentsCore with SettingsCore with RepositoriesCore =>
+    self: Core with AuthorizationCore with PersistenceCore =>
 
   private implicit val _ = actorSystem.dispatcher
 

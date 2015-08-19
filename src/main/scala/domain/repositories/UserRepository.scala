@@ -1,33 +1,22 @@
 package domain.repositories
 
-import domain.models.User
 import java.util.UUID
-import scala.concurrent.{ExecutionContext, Future}
+
+import domain.models.{ExternalAccountType, User}
+
 import scala.collection.parallel.mutable
+import scala.concurrent.{ExecutionContext, Future}
 
-trait UserRepository {
-  def get(userId: UUID): Future[Option[User]]
+class UserRepository(implicit val executionContext: ExecutionContext) extends Repository[User] with CRUDOps[User] {
+  val store = mutable.ParHashMap[UUID, User]()
 
-  def put(user: User): Future[User]
-
-  def delete(userId: UUID): Future[Option[User]]
+  def findByExternalAccount(externalAccountType: ExternalAccountType.Value, externalAccountId: String): Future[Option[User]] = Future {
+    store.find{ case(uuid, user) =>
+      user.externalAccounts.find(ea =>
+        ea.externalAccountType.equals() && ea.externalAccountId.equals(externalAccountId)).isDefined}.map(_._2)
+  }
 }
 
-class UserRepositoryImpl(implicit executionContext: ExecutionContext) extends UserRepository {
-  var memStore = mutable.ParHashMap[UUID, User]()
-
-  def get(userId: UUID) = Future {
-    memStore.get(userId)
-  }
-
-  def put(user: User) = Future {
-    val id = user.userId getOrElse java.util.UUID.randomUUID()
-    val newUser = user.copy(userId = Option(id))
-    memStore += (id -> newUser)
-    newUser
-  }
-
-  def delete(userId: UUID) = Future {
-    memStore.remove(userId)
-  }
+object UserRepository {
+  def apply()(implicit executionContext: ExecutionContext): UserRepository = new UserRepository()
 }

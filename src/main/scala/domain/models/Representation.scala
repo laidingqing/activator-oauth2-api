@@ -1,15 +1,28 @@
-package domain
+package domain.models
 
 trait Representation
 
 case class AccessTokenRepresentation(access_token: String, token_type: String, expires_in: Option[Long], refresh_token: Option[String]) extends Representation
-case class ExternalUserInfoRepresentation(id: String, name: Option[String], first_name: Option[String], last_name: Option[String], email: String) extends Representation
+case class ExternalUserInfo(id: String, name: Option[String], firstname: Option[String], lastname: Option[String], email: String)
+
+case class FacebookUserInfoRepresentation(id: String, name: Option[String], first_name: Option[String], last_name: Option[String], email: String) extends Representation
+object FacebookUserInfoRepresentation {
+  implicit def toExternalUserInfo(facebookUserInfoRepresentation: FacebookUserInfoRepresentation): ExternalUserInfo = {
+    ExternalUserInfo(
+      facebookUserInfoRepresentation.id,
+      facebookUserInfoRepresentation.name,
+      facebookUserInfoRepresentation.first_name,
+      facebookUserInfoRepresentation.last_name,
+      facebookUserInfoRepresentation.email
+    )
+  }
+}
 
 case class LiveUserInfoRepresentation(id: String, name: Option[String], first_name: Option[String], last_name: Option[String], emails: LiveEmailsRepresentation) extends Representation
 case class LiveEmailsRepresentation(account: String)
 object LiveUserInfoRepresentation {
-  implicit def toExternalUserInfoRepresentation(liveUserInfoRepresentation: LiveUserInfoRepresentation): ExternalUserInfoRepresentation = {
-    ExternalUserInfoRepresentation(
+  implicit def toExternalUserInfo(liveUserInfoRepresentation: LiveUserInfoRepresentation): ExternalUserInfo = {
+    ExternalUserInfo(
       liveUserInfoRepresentation.id,
       liveUserInfoRepresentation.name,
       liveUserInfoRepresentation.first_name,
@@ -24,8 +37,8 @@ case class GoogleUserInfoRepresentation(id: String, name: Option[String], given_
   require(verified_email, s"Unverified email: $email")
 }
 object GoogleUserInfoRepresentation {
-  implicit def toExternalUserInfoRepresentation(googleUserInfoRepresentation: GoogleUserInfoRepresentation): ExternalUserInfoRepresentation = {
-    ExternalUserInfoRepresentation(
+  implicit def toExternalUserInfo(googleUserInfoRepresentation: GoogleUserInfoRepresentation): ExternalUserInfo = {
+    ExternalUserInfo(
       googleUserInfoRepresentation.id,
       googleUserInfoRepresentation.name,
       googleUserInfoRepresentation.given_name,
@@ -36,7 +49,7 @@ object GoogleUserInfoRepresentation {
 }
 
 case class ErrorMessageRepresentation(code: String, message: String) extends Representation
-case class ExternalUserInfoMessageErrorRepresentation(code: String, message: String, externalAccountInfo: ExternalUserInfoRepresentation) extends Representation
+case class ExternalUserInfoMessageErrorRepresentation(code: String, message: String, externalAccountInfo: ExternalUserInfo) extends Representation
 
 object ErrorMessageRepresentation {
   val FailedAccessTokenRetrievalFromExternalService = ErrorMessageRepresentation("40110", "Error while retrieving 'access_token' from external service.")

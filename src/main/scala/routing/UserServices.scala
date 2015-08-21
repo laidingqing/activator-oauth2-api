@@ -30,14 +30,14 @@ trait UserServices extends Directives with Json4sSupport {
       post {
         entity(as[User]) { user =>
           complete({
-            userRepository.put(user)
+            userRepository.create(user)
           })
         }
       }
     } ~ path(Segment) { id =>
       get {
         complete({
-          userRepository.get(UUID.fromString(id))
+          userRepository.retrieve(UUID.fromString(id))
         })
       } ~
       delete {

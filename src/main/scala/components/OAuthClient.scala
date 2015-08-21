@@ -2,6 +2,7 @@ package components
 
 import akka.actor.ActorSystem
 import domain._
+import domain.models.{ExternalUserInfo, AccessTokenRepresentation}
 import org.json4s.native.JsonMethods._
 import org.json4s.{DefaultFormats, StringInput}
 import spray.client.pipelining._
@@ -13,23 +14,23 @@ import spray.util.LoggingContext
 
 import scala.concurrent.Future
 
-trait ExternalProviderEndpoints {
+trait OAuthEndpoints {
   val AccessTokenEndpoint: String
   val UserAccountEndpoint: String
 }
 
-trait ExternalProviderAuthenticator {
-    self: ExternalProviderEndpoints =>
+trait OAuthClient {
+    self: OAuthEndpoints =>
 
   val clientId: String
   val clientSecret: String
 
-  def authenticate(code: String, redirectUri: String): Future[ExternalUserInfoRepresentation]
+  def authorize(code: String, redirectUri: String): Future[ExternalUserInfo]
 
 }
 
-trait SprayAuthenticatorClient extends ExternalProviderAuthenticator with Json4sSupport {
-    self: ExternalProviderEndpoints =>
+trait SprayOAuthClient extends OAuthClient with Json4sSupport {
+    self: OAuthEndpoints =>
 
   import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -40,7 +41,7 @@ trait SprayAuthenticatorClient extends ExternalProviderAuthenticator with Json4s
   private lazy val accessTokenUri = Uri(AccessTokenEndpoint)
   private lazy val userAccountUri = Uri(UserAccountEndpoint)
 
-  def authenticate(code: String, redirectUri: String): Future[ExternalUserInfoRepresentation] = {
+  def authorize(code: String, redirectUri: String): Future[ExternalUserInfo] = {
     for {
       accessToken       <- getAccessToken(code, redirectUri)
       externalUserInfo  <- getExternalUserInfo(accessToken)
@@ -59,7 +60,7 @@ trait SprayAuthenticatorClient extends ExternalProviderAuthenticator with Json4s
 
     val request = Post(accessTokenUri, params)
 
-    val pipeline = logRequest(log) ~> sendReceive ~> logResponse(log) // ~> unmarshal[Option[AccessTokenRepresentation]]
+    val pipeline = logRequest(log) ~> sendReceive ~> logResponse(log)
 
     val response: Future[HttpResponse] = pipeline (request)
 
@@ -73,7 +74,7 @@ trait SprayAuthenticatorClient extends ExternalProviderAuthenticator with Json4s
     unmarshall[AccessTokenRepresentation](payload)
   }
 
-  private def getExternalUserInfo(accessToken: AccessTokenRepresentation): Future[ExternalUserInfoRepresentation] = {
+  private def getExternalUserInfo(accessToken: AccessTokenRepresentation): Future[ExternalUserInfo] = {
     val request = Get(userAccountUri)
 
     val pipeline =
@@ -87,8 +88,8 @@ trait SprayAuthenticatorClient extends ExternalProviderAuthenticator with Json4s
 
   }
 
-  protected def unmarshallExternalUserInfoRepresentationResponse(payload: HttpEntity): ExternalUserInfoRepresentation = {
-    unmarshall[ExternalUserInfoRepresentation](payload)
+  protected def unmarshallExternalUserInfoRepresentationResponse(payload: HttpEntity): ExternalUserInfo = {
+    unmarshall[ExternalUserInfo](payload)
   }
 
   protected def unmarshall[T <: AnyRef](payload: HttpEntity)(implicit mf: scala.reflect.Manifest[T]): T = {

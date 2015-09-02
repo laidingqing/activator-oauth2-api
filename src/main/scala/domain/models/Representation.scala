@@ -1,13 +1,11 @@
 package domain.models
 
-trait Representation
+import social.{GoogleAccountInfoRepresentation, LiveAccountInfoRepresentation, FacebookAccountInfoRepresentation}
 
-case class AccessTokenRepresentation(access_token: String, token_type: String, expires_in: Option[Long], refresh_token: Option[String]) extends Representation
 case class ExternalUserInfo(id: String, name: Option[String], firstname: Option[String], lastname: Option[String], email: String)
 
-case class FacebookUserInfoRepresentation(id: String, name: Option[String], first_name: Option[String], last_name: Option[String], email: String) extends Representation
-object FacebookUserInfoRepresentation {
-  implicit def toExternalUserInfo(facebookUserInfoRepresentation: FacebookUserInfoRepresentation): ExternalUserInfo = {
+object ExternalUserInfo {
+  implicit def toExternalUserInfo(facebookUserInfoRepresentation: FacebookAccountInfoRepresentation): ExternalUserInfo = {
     ExternalUserInfo(
       facebookUserInfoRepresentation.id,
       facebookUserInfoRepresentation.name,
@@ -16,12 +14,8 @@ object FacebookUserInfoRepresentation {
       facebookUserInfoRepresentation.email
     )
   }
-}
 
-case class LiveUserInfoRepresentation(id: String, name: Option[String], first_name: Option[String], last_name: Option[String], emails: LiveEmailsRepresentation) extends Representation
-case class LiveEmailsRepresentation(account: String)
-object LiveUserInfoRepresentation {
-  implicit def toExternalUserInfo(liveUserInfoRepresentation: LiveUserInfoRepresentation): ExternalUserInfo = {
+  implicit def toExternalUserInfo(liveUserInfoRepresentation: LiveAccountInfoRepresentation): ExternalUserInfo = {
     ExternalUserInfo(
       liveUserInfoRepresentation.id,
       liveUserInfoRepresentation.name,
@@ -30,14 +24,8 @@ object LiveUserInfoRepresentation {
       liveUserInfoRepresentation.emails.account
     )
   }
-}
 
-case class GoogleUserInfoRepresentation(id: String, name: Option[String], given_name: Option[String], family_name: Option[String], email: String, verified_email: Boolean) extends Representation {
-  // Email must have been verified, if not we reject the authentication.
-  require(verified_email, s"Unverified email: $email")
-}
-object GoogleUserInfoRepresentation {
-  implicit def toExternalUserInfo(googleUserInfoRepresentation: GoogleUserInfoRepresentation): ExternalUserInfo = {
+  implicit def toExternalUserInfo(googleUserInfoRepresentation: GoogleAccountInfoRepresentation): ExternalUserInfo = {
     ExternalUserInfo(
       googleUserInfoRepresentation.id,
       googleUserInfoRepresentation.name,
@@ -46,6 +34,7 @@ object GoogleUserInfoRepresentation {
       googleUserInfoRepresentation.email
     )
   }
+
 }
 
 case class ErrorMessageRepresentation(code: String, message: String) extends Representation

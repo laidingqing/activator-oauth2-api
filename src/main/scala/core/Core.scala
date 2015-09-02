@@ -5,6 +5,7 @@ import components._
 import conf.Settings
 import domain.repositories._
 import routing._
+import social._
 import spray.routing.RouteConcatenation
 
 trait Core {
@@ -23,28 +24,31 @@ trait SettingsCore {
   val settings = Settings()
 }
 
-trait OAuthCore {
+trait SocialCore {
     self: Core with SettingsCore =>
 
-  val facebookOAuthClient = FacebookOAuthClient(settings.facebook.clientId, settings.facebook.clientSecret)
-  val googleOAuthClient = GoogleOAuthClient(settings.google.clientId, settings.google.clientSecret)
-  val liveOAuthClient = LiveOAuthClient(settings.live.clientId, settings.live.clientSecret)
+  val facebookOAuthClient = new FacebookOAuthClient(settings.facebook.clientId, settings.facebook.clientSecret)
+  val googleOAuthClient = new GoogleOAuthClient(settings.google.clientId, settings.google.clientSecret)
+  val liveOAuthClient = new LiveOAuthClient(settings.live.clientId, settings.live.clientSecret)
+
+  val facebookAccountClient = new FacebookAccountClient()
+  val googleAccountClient = new GoogleAccountClient()
+  val liveAccountClient = new LiveAccountClient()
 
 }
 
 trait AuthorizationCore {
-    self: OAuthCore with PersistenceCore with SettingsCore =>
+    self: SocialCore with PersistenceCore with SettingsCore =>
 
-  val facebookAuthenticator = FacebookAuthenticator(facebookOAuthClient, userRepository, oauthTokenRepository)
-  val googleAuthenticator = GoogleAuthenticator(googleOAuthClient, userRepository, oauthTokenRepository)
-  val liveAuthenticator = LiveAuthenticator(liveOAuthClient, userRepository, oauthTokenRepository)
+  val facebookAuthenticator = FacebookAuthenticator(facebookOAuthClient, facebookAccountClient, userRepository, oauthTokenRepository)
+  val googleAuthenticator = GoogleAuthenticator(googleOAuthClient, googleAccountClient, userRepository, oauthTokenRepository)
+  val liveAuthenticator = LiveAuthenticator(liveOAuthClient, liveAccountClient, userRepository, oauthTokenRepository)
 
 }
 
 trait PersistenceCore {
   self: Core =>
 
-  //implicit val repositoryExecutionContext = ExecutionContext.global
   private implicit val _ = actorSystem.dispatcher
 
   val userRepository = UserRepository()
@@ -62,7 +66,7 @@ trait ApiCore extends RouteConcatenation {
     GoogleAuthService(googleAuthenticator).route ~
     LiveAuthService(liveAuthenticator).route ~
     UserServices(userRepository).route ~
-    StaticDeliveryService().route ~
+    StaticDeliveryService().route //~
     ExampleService().route
 
 

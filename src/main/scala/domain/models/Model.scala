@@ -18,7 +18,8 @@ case class User(
 case class ExternalAccount(
   externalAccountType: ExternalAccountType.Value,
   externalAccountId: String,
-  accessToken: String)
+  accessToken: String,
+  refreshToken: Option[String])
 
 object ExternalAccountType extends Enumeration {
   val Facebook = Value("Facebook")

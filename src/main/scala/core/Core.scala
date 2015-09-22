@@ -38,7 +38,9 @@ trait SocialCore {
 }
 
 trait AuthorizationCore {
-    self: SocialCore with PersistenceCore with SettingsCore =>
+    self: Core with SocialCore with PersistenceCore with SettingsCore =>
+
+  private implicit val _ = actorSystem.dispatcher
 
   val facebookAuthenticator = FacebookAuthenticator(facebookOAuthClient, facebookAccountClient, userRepository, oauthTokenRepository)
   val googleAuthenticator = GoogleAuthenticator(googleOAuthClient, googleAccountClient, userRepository, oauthTokenRepository)

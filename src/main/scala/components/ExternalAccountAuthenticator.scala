@@ -2,16 +2,20 @@ package components
 
 import java.util.UUID
 
+import akka.actor.ActorSystem
 import domain.models._
 import domain.repositories.{OAuthTokenRepository, UserRepository}
 import org.joda.time.DateTime
+import org.json4s.DefaultFormats
 import social._
+import spray.httpx.{SprayJsonSupport, Json4sSupport}
 
 import scala.concurrent.Future
 
 trait ExternalAccountAuthenticator {
 
-  import scala.concurrent.ExecutionContext.Implicits.global
+  implicit val actorSystem: ActorSystem
+  implicit val _ = actorSystem.dispatcher
 
   val externalAccountType: ExternalAccountType.Value
 
@@ -31,26 +35,31 @@ trait ExternalAccountAuthenticator {
     } yield token
   }
 
-  private def getUser(externalUserInfo: ExternalUserInfo): Future[User] = {
-    userRepository.findByExternalAccount(externalAccountType, externalUserInfo.id) flatMap {
+  private def getUser(accountInfoRepresentation: AccountInfoRepresentation): Future[User] = {
+    userRepository.findByExternalAccount(externalAccountType, accountInfoRepresentation.accountId) flatMap {
       case Some(user) => Future(user)
-      case _ => createUser(externalUserInfo)
+      case _ => createUser(accountInfoRepresentation)
     }
   }
 
-  private def createUser(externalUserInfo: ExternalUserInfo): Future[User] = {
+  private def createUser(accountInfoRepresentation: AccountInfoRepresentation): Future[User] = {
     userRepository.create(
       User(
         UUID.randomUUID(),
-        externalUserInfo.firstname,
-        externalUserInfo.lastname,
-        externalUserInfo.email,
+        accountInfoRepresentation.accountFirstname,
+        accountInfoRepresentation.accountLastname,
+        accountInfoRepresentation.accountEmail,
         Seq.empty
       ))
   }
 
-  private def connect(user: User, externalUserInfo: ExternalUserInfo, accessToken: AccessTokenRepresentation): Future[User] = {
-    val externalAccount = ExternalAccount(externalAccountType, externalUserInfo.id, accessToken.access_token)
+  private def connect(user: User, accountInfoRepresentation: AccountInfoRepresentation, accessToken: AccessTokenRepresentation): Future[User] = {
+    val externalAccount =
+      ExternalAccount(
+        externalAccountType,
+        accountInfoRepresentation.accountId,
+        accessToken.access_token,
+        accessToken.refresh_token)
     userRepository.update(user.copy(externalAccounts = user.externalAccounts :+ externalAccount))
   }
 
@@ -71,14 +80,14 @@ class ExternalAccountAuthenticatorImpl(
     val oAuthClient: OAuthClient,
     val externalAccountClient: AccountClient,
     val userRepository: UserRepository,
-    val oauthTokenRepository: OAuthTokenRepository) extends ExternalAccountAuthenticator
+    val oauthTokenRepository: OAuthTokenRepository)(implicit val actorSystem: ActorSystem) extends ExternalAccountAuthenticator
 
 object FacebookAuthenticator {
   def apply(
       oAuthClient: FacebookOAuthClient,
       externalAccountClient: FacebookAccountClient,
       userRepository: UserRepository,
-      oauthTokenRepository: OAuthTokenRepository): ExternalAccountAuthenticator = {
+      oauthTokenRepository: OAuthTokenRepository)(implicit actorSystem: ActorSystem): ExternalAccountAuthenticator = {
     new ExternalAccountAuthenticatorImpl(ExternalAccountType.Facebook, oAuthClient, externalAccountClient, userRepository, oauthTokenRepository)
   }
 }
@@ -88,7 +97,7 @@ object GoogleAuthenticator {
      oAuthClient: GoogleOAuthClient,
      externalAccountClient: GoogleAccountClient,
      userRepository: UserRepository,
-     oauthTokenRepository: OAuthTokenRepository): ExternalAccountAuthenticator = {
+     oauthTokenRepository: OAuthTokenRepository)(implicit actorSystem: ActorSystem): ExternalAccountAuthenticator = {
     new ExternalAccountAuthenticatorImpl(ExternalAccountType.Google, oAuthClient, externalAccountClient, userRepository, oauthTokenRepository)
   }
 }
@@ -98,7 +107,7 @@ object LiveAuthenticator {
       oAuthClient: LiveOAuthClient,
       externalAccountClient: LiveAccountClient,
       userRepository: UserRepository,
-      oauthTokenRepository: OAuthTokenRepository): ExternalAccountAuthenticator = {
+      oauthTokenRepository: OAuthTokenRepository)(implicit actorSystem: ActorSystem): ExternalAccountAuthenticator = {
     new ExternalAccountAuthenticatorImpl(ExternalAccountType.Live, oAuthClient, externalAccountClient, userRepository, oauthTokenRepository)
   }
 }

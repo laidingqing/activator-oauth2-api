@@ -62,9 +62,9 @@ trait ApiCore extends RouteConcatenation {
     GoogleAuthService(googleAuthenticator).route ~
     LiveAuthService(liveAuthenticator).route ~
     UserServices(userRepository).route ~
+    TodoItemServices(todoItemRepository).route ~
     StaticDeliveryService().route ~
     ExampleService().route
-
 
   val routedHttpServiceActor = actorSystem.actorOf(RoutedHttpService.props(servicesRoutes), "oauth2-api-root-service")
 

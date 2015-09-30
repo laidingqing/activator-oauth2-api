@@ -1,7 +1,6 @@
 package routing
 
 import akka.actor.ActorSystem
-import domain.models.User
 import domain.repositories.UserRepository
 import org.json4s.DefaultFormats
 import spray.httpx.Json4sSupport
@@ -25,27 +24,11 @@ trait UserServices extends Directives with Json4sSupport {
 
   def userRepository: UserRepository
 
-  def route = pathPrefix("users") {
+  def route = pathPrefix("users" / "me") {
     pathEnd {
-      post {
-        entity(as[User]) { user =>
-          complete({
-            userRepository.create(user)
-          })
-        }
-      }
-    } ~ path(Segment) { id =>
       get {
-        complete({
-          userRepository.retrieve(UUID.fromString(id))
-        })
-      } ~
-      delete {
-        complete({
-          userRepository.delete(UUID.fromString(id))
-        })
+       complete { userRepository.retrieve(UUID.fromString("1")) }
       }
     }
   }
-
 }

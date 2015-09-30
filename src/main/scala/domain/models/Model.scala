@@ -39,3 +39,4 @@ case class TodoItem(
   title: String,
   description: String) extends Entity
 
+case class TodoItemDto(title: String, description: String)
